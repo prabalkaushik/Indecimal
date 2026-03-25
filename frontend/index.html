@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered Indecimal assistant using Retrieval-Augmented Generation (RAG) to answer questions from internal documents about home construction packages, policies, and quality assurance.">
+    <title>Indecimal AI — Home Construction Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 20h20"/>
+                            <path d="M5 20V8l7-5 7 5v12"/>
+                            <path d="M9 20v-6h6v6"/>
+                            <path d="M9 12h6"/>
+                        </svg>
+                    </div>
+                    <h1>Indecimal AI</h1>
+                </div>
+                <p class="tagline">Home Construction Assistant</p>
+            </div>
+
+            <!-- API Key Section -->
+            <div class="sidebar-section api-key-section">
+                <h3>🔑 Groq API Key</h3>
+                <div class="api-key-wrapper">
+                    <input
+                        type="password"
+                        id="apiKeyInput"
+                        class="api-key-input"
+                        placeholder="Paste your Groq API key..."
+                        autocomplete="off"
+                    >
+                    <button type="button" id="apiKeySaveBtn" class="api-key-save-btn">Save</button>
+                </div>
+                <p class="api-key-status" id="apiKeyStatus">No API key set</p>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>📄 Loaded Documents</h3>
+                <ul class="doc-list" id="docList">
+                    <li class="doc-item loading">Loading...</li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>💡 Try Asking</h3>
+                <ul class="suggestion-list">
+                    <li class="suggestion" data-query="What are Indecimal's construction packages and their pricing?">What are the construction packages and pricing?</li>
+                    <li class="suggestion" data-query="How does Indecimal ensure quality assurance?">How does Indecimal ensure quality assurance?</li>
+                    <li class="suggestion" data-query="What is the customer journey at Indecimal?">What is the customer journey?</li>
+                    <li class="suggestion" data-query="What steel and cement brands are used in the Premier package?">What materials are used in the Premier package?</li>
+                    <li class="suggestion" data-query="How does the escrow payment system work?">How does the escrow payment system work?</li>
+                    <li class="suggestion" data-query="What is included in the zero cost maintenance program?">What's in the zero cost maintenance program?</li>
+                </ul>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="model-info">
+                    <span class="badge">Embeddings</span> all-MiniLM-L6-v2
+                </div>
+                <div class="model-info">
+                    <span class="badge">LLM</span> Groq llama-3.3-70b
+                </div>
+                <div class="model-info">
+                    <span class="badge">Search</span> FAISS (L2)
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-area">
+            <div class="chat-header">
+                <button class="menu-toggle" id="menuToggle" aria-label="Toggle sidebar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <div class="header-info">
+                    <h2>Indecimal Home Construction Assistant</h2>
+                    <span class="status-badge" id="statusBadge">
+                        <span class="status-dot"></span>
+                        Initializing...
+                    </span>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">
+                    <div class="welcome-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 20h20"/>
+                            <path d="M5 20V8l7-5 7 5v12"/>
+                            <path d="M9 20v-6h6v6"/>
+                            <path d="M9 12h6"/>
+                        </svg>
+                    </div>
+                    <h2>Welcome to Indecimal AI</h2>
+                    <p>I'm your AI assistant for Indecimal's home construction services. Ask me about our packages, pricing, quality assurance, customer journey, maintenance support, and more.</p>
+                    <p class="welcome-sub">My answers are grounded in Indecimal's internal documents — I only use verified information.</p>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <form id="queryForm" class="input-form">
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="queryInput" 
+                            placeholder="Ask about Indecimal packages, pricing, quality, maintenance..."
+                            autocomplete="off"
+                            required
+                        >
+                        <button type="submit" id="submitBtn" class="send-btn" aria-label="Send message">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="input-hint">Answers are generated from internal documents only. <span id="chunkCount"></span></p>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
