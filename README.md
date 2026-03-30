@@ -5,8 +5,7 @@ A **Retrieval-Augmented Generation (RAG)** chatbot for Indecimal that answers us
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)
 ![FAISS](https://img.shields.io/badge/FAISS-Vector_Search-orange)
-![OpenAI](https://img.shields.io/badge/LLM-gpt-4o-mini-purple)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+]![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
 ---
 
