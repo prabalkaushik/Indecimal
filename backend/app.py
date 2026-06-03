@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from rag_pipeline import RAGPipeline
+from rag_pipeline import RAGPipeline, is_relevant, LLM_MODEL, EMBEDDING_MODEL
 
 rag = RAGPipeline()
 
@@ -33,12 +33,25 @@ async def health():
         "documents": len(rag.doc_names),
         "chunks": len(rag.chunks),
         "document_names": rag.doc_names,
+        "has_api_key": bool(os.getenv("GROQ_API_KEY")),
     }
 
 
 @app.post("/api/query")
 async def query(req: QueryRequest):
+    # Check if question is relevant to real estate
+    if not is_relevant(req.question):
+        return {
+            "question": req.question,
+            "answer": "I don't have enough information in the provided documents to answer this question.",
+            "retrieved_chunks": [],
+            "model": LLM_MODEL,
+            "embedding_model": EMBEDDING_MODEL,
+            "top_k": req.top_k,
+        }
+    # If relevant, forward to RAG pipeline
     return await rag.query(req.question, top_k=req.top_k, api_key=req.api_key)
+
 
 
 FRONTEND = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -53,4 +66,4 @@ app.mount("/static", StaticFiles(directory=FRONTEND), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=True)

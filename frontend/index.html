@@ -4,133 +4,258 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="AI-powered Indecimal assistant using Retrieval-Augmented Generation (RAG) to answer questions from internal documents about home construction packages, policies, and quality assurance.">
-    <title>Indecimal AI — Home Construction Assistant</title>
+    <title>Indecimal AI — Home Construction RAG Workspace</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
+        <!-- Sidebar (Left) -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
                     <div class="logo-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 20h20"/>
-                            <path d="M5 20V8l7-5 7 5v12"/>
-                            <path d="M9 20v-6h6v6"/>
-                            <path d="M9 12h6"/>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
                         </svg>
                     </div>
-                    <h1>Indecimal AI</h1>
+                    <div>
+                        <h1>Indecimal AI</h1>
+                        <span class="logo-subtitle">RAG Platform</span>
+                    </div>
                 </div>
-                <p class="tagline">Home Construction Assistant</p>
             </div>
 
             <!-- API Key Section -->
-            <div class="sidebar-section api-key-section">
+            <div class="sidebar-section">
                 <h3>🔑 Groq API Key</h3>
-                <div class="api-key-wrapper">
-                    <input
-                        type="password"
-                        id="apiKeyInput"
-                        class="api-key-input"
-                        placeholder="Paste your Groq API key..."
-                        autocomplete="off"
-                    >
-                    <button type="button" id="apiKeySaveBtn" class="api-key-save-btn">Save</button>
+                <div class="api-key-container">
+                    <div class="api-key-input-wrapper">
+                        <input
+                            type="password"
+                            id="apiKeyInput"
+                            placeholder="Enter custom Groq Key (Optional)..."
+                            autocomplete="off"
+                        >
+                        <button type="button" id="apiKeySaveBtn" class="icon-btn" title="Save custom API key">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                <polyline points="7 3 7 8 15 8"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="api-key-status" id="apiKeyStatus">Checking server key...</p>
                 </div>
-                <p class="api-key-status" id="apiKeyStatus">No API key set</p>
             </div>
 
+            <!-- Loaded Documents -->
             <div class="sidebar-section">
-                <h3>📄 Loaded Documents</h3>
+                <h3>📄 Knowledge Base</h3>
                 <ul class="doc-list" id="docList">
-                    <li class="doc-item loading">Loading...</li>
+                    <li class="doc-item loading">Loading files...</li>
                 </ul>
             </div>
 
+            <!-- Try Asking -->
             <div class="sidebar-section">
-                <h3>💡 Try Asking</h3>
-                <ul class="suggestion-list">
-                    <li class="suggestion" data-query="What are Indecimal's construction packages and their pricing?">What are the construction packages and pricing?</li>
-                    <li class="suggestion" data-query="How does Indecimal ensure quality assurance?">How does Indecimal ensure quality assurance?</li>
-                    <li class="suggestion" data-query="What is the customer journey at Indecimal?">What is the customer journey?</li>
-                    <li class="suggestion" data-query="What steel and cement brands are used in the Premier package?">What materials are used in the Premier package?</li>
-                    <li class="suggestion" data-query="How does the escrow payment system work?">How does the escrow payment system work?</li>
-                    <li class="suggestion" data-query="What is included in the zero cost maintenance program?">What's in the zero cost maintenance program?</li>
-                </ul>
+                <h3>💡 Suggestion Prompts</h3>
+                <div class="suggestion-chips">
+                    <button class="suggestion" data-query="What are Indecimal's construction packages and their pricing?">Construction packages & pricing</button>
+                    <button class="suggestion" data-query="How does Indecimal ensure quality assurance?">Quality assurance & inspection</button>
+                    <button class="suggestion" data-query="What is the customer journey at Indecimal?">10-stage customer journey</button>
+                    <button class="suggestion" data-query="What steel and cement brands are used in the Premier package?">Premier package materials</button>
+                    <button class="suggestion" data-query="How does the escrow payment system work?">Escrow payment system</button>
+                    <button class="suggestion" data-query="What is included in the zero cost maintenance program?">Zero-cost maintenance program</button>
+                </div>
             </div>
 
+            <!-- Sidebar Footer -->
             <div class="sidebar-footer">
-                <div class="model-info">
-                    <span class="badge">Embeddings</span> all-MiniLM-L6-v2
+                <div class="tech-spec">
+                    <span class="spec-label">Embeddings</span>
+                    <span class="spec-value">all-MiniLM-L6-v2</span>
                 </div>
-                <div class="model-info">
-                    <span class="badge">LLM</span> Groq llama-3.3-70b
+                <div class="tech-spec">
+                    <span class="spec-label">Sparse Match</span>
+                    <span class="spec-value">BM25 Lexical</span>
                 </div>
-                <div class="model-info">
-                    <span class="badge">Search</span> FAISS (L2)
+                <div class="tech-spec">
+                    <span class="spec-label">Re-ranking</span>
+                    <span class="spec-value">Reciprocal Rank Fusion</span>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Chat Area -->
+        <!-- Main Chat Area (Center) -->
         <main class="chat-area">
-            <div class="chat-header">
-                <button class="menu-toggle" id="menuToggle" aria-label="Toggle sidebar">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                </button>
-                <div class="header-info">
-                    <h2>Indecimal Home Construction Assistant</h2>
-                    <span class="status-badge" id="statusBadge">
-                        <span class="status-dot"></span>
-                        Initializing...
-                    </span>
-                </div>
-            </div>
-
-            <div class="chat-messages" id="chatMessages">
-                <div class="welcome-message">
-                    <div class="welcome-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 20h20"/>
-                            <path d="M5 20V8l7-5 7 5v12"/>
-                            <path d="M9 20v-6h6v6"/>
-                            <path d="M9 12h6"/>
+            <!-- Header -->
+            <header class="chat-header">
+                <div class="header-left">
+                    <button class="menu-toggle-btn" id="menuToggle" aria-label="Toggle sidebar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="18" x2="21" y2="18"/>
                         </svg>
+                    </button>
+                    <div class="header-title">
+                        <h2>Home Construction AI Workspace</h2>
+                        <span class="status-indicator" id="statusBadge">
+                            <span class="status-dot"></span>
+                            Initializing...
+                        </span>
                     </div>
-                    <h2>Welcome to Indecimal AI</h2>
-                    <p>I'm your AI assistant for Indecimal's home construction services. Ask me about our packages, pricing, quality assurance, customer journey, maintenance support, and more.</p>
-                    <p class="welcome-sub">My answers are grounded in Indecimal's internal documents — I only use verified information.</p>
+                </div>
+                
+                <div class="header-right">
+                    <button class="action-tab-btn active" id="btnShowChat">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <span>Chat</span>
+                    </button>
+                    <button class="action-tab-btn" id="btnShowPipeline">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                            <polyline points="2 17 12 22 22 17"/>
+                            <polyline points="2 12 12 17 22 12"/>
+                        </svg>
+                        <span>Pipeline Architecture</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Window -->
+            <div class="chat-container active" id="chatView">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="welcome-message">
+                        <div class="welcome-badge">
+                            <span class="badge-dot"></span> Verified Grounded Chatbot
+                        </div>
+                        <h2>Indecimal RAG Workspace</h2>
+                        <p>Welcome! I'm your AI assistant for Indecimal's home construction services. Ask me about our construction packages, pricing, quality guidelines, delays management, and escrow rules.</p>
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <h4>💡 Grounded Answers</h4>
+                                <p>Strict zero-hallucination prompt ensures responses are sourced ONLY from internal docs.</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>⚡ Hybrid Search</h4>
+                                <p>Combines FAISS vector similarity search with BM25 keyword matching.</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>📊 RRF Re-ranking</h4>
+                                <p>Ranks chunks using Reciprocal Rank Fusion (RRF) for optimal context relevance.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <form id="queryForm" class="input-form">
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                id="queryInput" 
+                                placeholder="Ask a question (e.g. 'What steel brand is used in Premier package?')..."
+                                autocomplete="off"
+                                required
+                            >
+                            <button type="submit" id="submitBtn" class="send-btn" aria-label="Send message">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"/>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="input-hint" id="chunkCount">System is loading...</p>
+                    </form>
                 </div>
             </div>
 
-            <div class="chat-input-area">
-                <form id="queryForm" class="input-form">
-                    <div class="input-wrapper">
-                        <input 
-                            type="text" 
-                            id="queryInput" 
-                            placeholder="Ask about Indecimal packages, pricing, quality, maintenance..."
-                            autocomplete="off"
-                            required
-                        >
-                        <button type="submit" id="submitBtn" class="send-btn" aria-label="Send message">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="22" y1="2" x2="11" y2="13"/>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                            </svg>
-                        </button>
+            <!-- Pipeline Architecture Details View (Togglable Panel) -->
+            <div class="pipeline-view" id="pipelineView">
+                <div class="pipeline-container">
+                    <div class="pipeline-section">
+                        <h3>🏗️ Indecimal Dual-Engine RAG Pipeline</h3>
+                        <p class="lead-text">This system implements an advanced, production-grade <strong>Hybrid Retrieval-Augmented Generation (RAG)</strong> architecture. By combining dense semantic embeddings with sparse keyword relevance, it achieves high precision and avoids common grounding errors.</p>
                     </div>
-                    <p class="input-hint">Answers are generated from internal documents only. <span id="chunkCount"></span></p>
-                </form>
+
+                    <div class="pipeline-flow-diagram">
+                        <div class="flow-node">
+                            <div class="node-icon">📥</div>
+                            <h4>1. Input Query</h4>
+                            <p>"What is the escrow payment system?"</p>
+                        </div>
+                        <div class="flow-arrow">➡️</div>
+                        <div class="flow-split">
+                            <div class="flow-node dense">
+                                <div class="node-icon">🌐</div>
+                                <h4>2a. Dense Retrieval</h4>
+                                <p>all-MiniLM-L6-v2 Embeddings + FAISS L2 Vector Search</p>
+                            </div>
+                            <div class="flow-node sparse">
+                                <div class="node-icon">🔍</div>
+                                <h4>2b. Sparse Retrieval</h4>
+                                <p>Pure-Python BM25 Lexical Keyword Ranker</p>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">➡️</div>
+                        <div class="flow-node rrf">
+                            <div class="node-icon">⚖️</div>
+                            <h4>3. RRF Re-ranking</h4>
+                            <p>Reciprocal Rank Fusion merges Dense & Sparse lists</p>
+                        </div>
+                        <div class="flow-arrow">➡️</div>
+                        <div class="flow-node generation">
+                            <div class="node-icon">🤖</div>
+                            <h4>4. Grounded Gen</h4>
+                            <p>llama-3.3-70b-versatile on Groq processes Top-5 Context</p>
+                        </div>
+                    </div>
+
+                    <div class="architecture-grid">
+                        <div class="arch-card">
+                            <div class="arch-header">
+                                <span class="badge dense">Engine 1</span>
+                                <h4>Dense Semantic Search</h4>
+                            </div>
+                            <p>Uses <strong>SentenceTransformers</strong> with <code>all-MiniLM-L6-v2</code> to convert document chunks and queries into 384-dimensional dense vectors. These capture semantic intent and concept matching (e.g. matching "materials" to "steel" or "cement"). Meta's <strong>FAISS</strong> library indexes these vectors to enable fast nearest-neighbor (L2 distance) querying.</p>
+                        </div>
+
+                        <div class="arch-card">
+                            <div class="arch-header">
+                                <span class="badge sparse">Engine 2</span>
+                                <h4>Sparse Lexical Search</h4>
+                            </div>
+                            <p>A custom <strong>BM25 sparse retriever</strong> computes term frequencies (TF) and inverse document frequencies (IDF) dynamically. This ensures that unique keywords, proper nouns, and specific names (like "ACC", "Infinia", "445+", "zero-cost") are matched exactly, compensating for any semantic generalities in the dense model.</p>
+                        </div>
+
+                        <div class="arch-card whole-width">
+                            <div class="arch-header">
+                                <span class="badge rrf">Merging Strategy</span>
+                                <h4>Reciprocal Rank Fusion (RRF) Re-ranking</h4>
+                            </div>
+                            <p>To combine the ranking results of Dense and Sparse engines without needing to normalize scores with incompatible scales, we implement <strong>Reciprocal Rank Fusion (RRF)</strong>. The merged score of a document chunk $d$ is defined as:</p>
+                            <div class="formula-block">
+                                $$RRF\_Score(d) = \sum_{m \in \{dense, sparse\}} \frac{1}{60 + Rank_m(d)}$$
+                            </div>
+                            <p>We retrieve the top-10 chunks from dense search and all candidate matches from sparse search, re-rank them using RRF, and select the top-5 highest-scoring chunks to feed to the LLM. This provides a balance of semantic contextualization and strict keyword accuracy.</p>
+                        </div>
+
+                        <div class="arch-card whole-width">
+                            <div class="arch-header">
+                                <span class="badge generation">Safety Guardrail</span>
+                                <h4>Zero-Hallucination Grounding Prompt</h4>
+                            </div>
+                            <p>The top-5 re-ranked context chunks are formatted as references and sent to the Groq API running <code>llama-3.3-70b-versatile</code>. The LLM is restricted via a strict system prompt to answer <strong>ONLY</strong> from the provided context. If the query cannot be answered by the context, it must strictly refuse to answer rather than fabricating details. Indicative prices are highlighted as variable in final answers.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

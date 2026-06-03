@@ -6,36 +6,74 @@ const statusBadge = document.getElementById('statusBadge');
 const docList = document.getElementById('docList');
 const chunkCount = document.getElementById('chunkCount');
 const menuToggle = document.getElementById('menuToggle');
-const sidebar = document.querySelector('.sidebar');
+const sidebar = document.getElementById('sidebar');
+
+
 const apiKeyInput = document.getElementById('apiKeyInput');
 const apiKeySaveBtn = document.getElementById('apiKeySaveBtn');
 const apiKeyStatus = document.getElementById('apiKeyStatus');
+
+const btnShowChat = document.getElementById('btnShowChat');
+const btnShowPipeline = document.getElementById('btnShowPipeline');
+const chatView = document.getElementById('chatView');
+const pipelineView = document.getElementById('pipelineView');
+
 let isProcessing = false;
+let serverHasApiKey = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     checkHealth();
     loadApiKey();
+    
     queryForm.addEventListener('submit', handleSubmit);
     apiKeySaveBtn.addEventListener('click', saveApiKey);
     apiKeyInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); saveApiKey(); }
+        if (e.key === 'Enter') { 
+            e.preventDefault(); 
+            saveApiKey(); 
+        }
     });
+
     document.querySelectorAll('.suggestion').forEach(el => {
         el.addEventListener('click', () => {
             queryInput.value = el.dataset.query;
+            // Force a tab switch to Chat view if suggesting
+            switchView('chat');
             handleSubmit(new Event('submit', { cancelable: true }));
         });
     });
+
     menuToggle.addEventListener('click', toggleSidebar);
+    
+    // Tab switching
+    btnShowChat.addEventListener('click', () => switchView('chat'));
+    btnShowPipeline.addEventListener('click', () => switchView('pipeline'));
 });
 
+// View switching logic
+function switchView(view) {
+    if (view === 'chat') {
+        btnShowChat.classList.add('active');
+        btnShowPipeline.classList.remove('active');
+        chatView.classList.add('active');
+        pipelineView.classList.remove('active');
+    } else {
+        btnShowChat.classList.remove('active');
+        btnShowPipeline.classList.add('active');
+        chatView.classList.remove('active');
+        pipelineView.classList.add('active');
+    }
+}
+
+
+// API Key overrides
 function loadApiKey() {
     const key = localStorage.getItem('groq_api_key') || '';
     if (key) {
         apiKeyInput.value = key;
-        setApiKeyStatus('saved', `Key saved (${key.slice(0, 8)}...)`);
+        updateApiKeyUI(true);
     } else {
-        setApiKeyStatus('none', 'No API key set');
+        updateApiKeyUI(false);
     }
 }
 
@@ -43,17 +81,27 @@ function saveApiKey() {
     const key = apiKeyInput.value.trim();
     if (!key) {
         localStorage.removeItem('groq_api_key');
-        setApiKeyStatus('none', 'No API key set');
+        updateApiKeyUI(false);
         return;
     }
     localStorage.setItem('groq_api_key', key);
-    setApiKeyStatus('saved', `Key saved (${key.slice(0, 8)}...)`);
+    updateApiKeyUI(true);
 }
 
-function setApiKeyStatus(state, text) {
-    apiKeyStatus.textContent = text;
+function updateApiKeyUI(hasCustomKey) {
     apiKeyStatus.className = 'api-key-status';
-    if (state === 'saved') apiKeyStatus.classList.add('saved');
+    if (hasCustomKey) {
+        const key = localStorage.getItem('groq_api_key') || '';
+        apiKeyStatus.textContent = `Custom Key Active (${key.slice(0, 6)}...)`;
+        apiKeyStatus.classList.add('override');
+    } else {
+        if (serverHasApiKey) {
+            apiKeyStatus.textContent = 'Server Key Active (from .env)';
+            apiKeyStatus.classList.add('active');
+        } else {
+            apiKeyStatus.textContent = 'No API key set (Server or Custom)';
+        }
+    }
 }
 
 function getApiKey() {
@@ -64,8 +112,13 @@ async function checkHealth() {
     try {
         const data = await (await fetch('/api/health')).json();
         if (data.status === 'healthy') {
-            setStatus('online', `Ready — ${data.chunks} chunks indexed`);
-            chunkCount.textContent = `${data.chunks} chunks across ${data.documents} documents.`;
+            serverHasApiKey = !!data.has_api_key;
+            setStatus('online', `Grounded Engine Online — ${data.chunks} chunks`);
+            chunkCount.textContent = `${data.chunks} chunks loaded across ${data.documents} knowledge base documents.`;
+            
+            // Re-render API key status after we know the server config
+            updateApiKeyUI(!!getApiKey());
+            
             docList.innerHTML = '';
             (data.document_names || []).forEach(name => {
                 const li = document.createElement('li');
@@ -74,7 +127,9 @@ async function checkHealth() {
                 docList.appendChild(li);
             });
         }
-    } catch { setStatus('error', 'Cannot connect to server'); }
+    } catch { 
+        setStatus('error', 'Connecting to backend...'); 
+    }
 }
 
 function setStatus(status, text) {
@@ -91,9 +146,12 @@ async function handleSubmit(e) {
     const question = queryInput.value.trim();
     if (!question) return;
 
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        appendMsg('assistant', '⚠️ Please set your Groq API key in the sidebar before asking questions.', true);
+    const customApiKey = getApiKey();
+    // Validate: if neither custom key nor server key is available, warn the user.
+    if (!customApiKey && !serverHasApiKey) {
+        const welcome = chatMessages.querySelector('.welcome-message');
+        if (welcome) welcome.remove();
+        appendMsg('assistant', '⚠️ Please enter a custom Groq API key in the sidebar. No server-side API key was found in the environment (.env file).', true);
         return;
     }
 
@@ -109,7 +167,11 @@ async function handleSubmit(e) {
         const res = await fetch('/api/query', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question, top_k: 5, api_key: apiKey }),
+            body: JSON.stringify({ 
+                question, 
+                top_k: 5, 
+                api_key: customApiKey 
+            }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -117,8 +179,10 @@ async function handleSubmit(e) {
         appendAnswer(data);
     } catch (err) {
         typingEl.remove();
-        appendMsg('assistant', `⚠️ Error: ${err.message}`, true);
-    } finally { setProcessing(false); }
+        appendMsg('assistant', `⚠️ Error processing query: ${err.message}`, true);
+    } finally { 
+        setProcessing(false); 
+    }
 }
 
 function setProcessing(state) {
@@ -131,11 +195,13 @@ function setProcessing(state) {
 function appendMsg(role, text, isError = false) {
     const msg = el('div', `message ${role}`);
     const avatar = el('div', 'message-avatar');
-    avatar.textContent = role === 'user' ? 'U' : '🏗️';
+    avatar.textContent = role === 'user' ? 'U' : 'AI';
     const content = el('div', 'message-content');
     const bubble = el('div', 'message-bubble');
+    
     bubble.innerHTML = isError ? `<div class="message-error">${esc(text)}</div>` :
         role === 'user' ? esc(text) : fmt(text);
+        
     content.appendChild(bubble);
     msg.append(avatar, content);
     chatMessages.appendChild(msg);
@@ -145,7 +211,7 @@ function appendMsg(role, text, isError = false) {
 function appendAnswer(data) {
     const msg = el('div', 'message assistant');
     const avatar = el('div', 'message-avatar');
-    avatar.textContent = '🏗️';
+    avatar.textContent = 'AI';
     const content = el('div', 'message-content');
     const bubble = el('div', 'message-bubble');
     bubble.innerHTML = fmt(data.answer);
@@ -159,11 +225,32 @@ function appendAnswer(data) {
 
         data.retrieved_chunks.forEach(c => {
             const card = el('div', 'chunk-card');
-            card.innerHTML = `<div class="chunk-header"><span class="chunk-source">${esc(c.source.replace(/_/g, ' '))}</span><span class="chunk-rank">#${c.rank}</span></div><div class="chunk-text">${esc(c.text)}</div><div class="chunk-score">L2: ${c.score}</div>`;
+            
+            // Format metrics
+            const denseMetric = `Dense Rank: #${c.dense_rank} (score: ${c.dense_score})`;
+            const sparseMetric = c.sparse_rank 
+                ? `Sparse Rank: #${c.sparse_rank} (score: ${c.sparse_score})`
+                : 'Sparse: No keyword match (score: 0)';
+            const rrfMetric = `RRF Score: ${c.rrf_score}`;
+
+            card.innerHTML = `
+                <div class="chunk-header">
+                    <span class="chunk-source">${esc(c.source.replace(/_/g, ' '))}</span>
+                </div>
+                <div class="chunk-text">${esc(c.text)}</div>
+                <div class="chunk-metrics">
+                    <span class="badge dense">${denseMetric}</span>
+                    <span class="badge sparse">${sparseMetric}</span>
+                    <span class="badge rrf">${rrfMetric}</span>
+                </div>
+            `;
             chunksDiv.appendChild(card);
         });
 
-        toggle.addEventListener('click', () => { toggle.classList.toggle('open'); chunksDiv.classList.toggle('open'); });
+        toggle.addEventListener('click', () => { 
+            toggle.classList.toggle('open'); 
+            chunksDiv.classList.toggle('open'); 
+        });
         section.append(toggle, chunksDiv);
         content.appendChild(section);
     }
@@ -176,7 +263,7 @@ function appendAnswer(data) {
 function appendTyping() {
     const msg = el('div', 'message assistant');
     const avatar = el('div', 'message-avatar');
-    avatar.textContent = '🏗️';
+    avatar.textContent = 'AI';
     const content = el('div', 'message-content');
     const bubble = el('div', 'message-bubble');
     bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
@@ -189,18 +276,33 @@ function appendTyping() {
 
 function toggleSidebar() {
     sidebar.classList.toggle('open');
-    let overlay = document.querySelector('.sidebar-overlay');
-    if (!overlay) {
-        overlay = el('div', 'sidebar-overlay');
-        overlay.addEventListener('click', toggleSidebar);
-        document.body.appendChild(overlay);
+    let backdrop = document.querySelector('.sidebar-backdrop');
+    if (!backdrop) {
+        backdrop = el('div', 'sidebar-backdrop');
+        backdrop.addEventListener('click', toggleSidebar);
+        document.body.appendChild(backdrop);
     }
-    overlay.classList.toggle('active');
+    backdrop.classList.toggle('active');
 }
 
-function el(tag, cls) { const e = document.createElement(tag); e.className = cls; return e; }
-function scroll() { requestAnimationFrame(() => { chatMessages.scrollTop = chatMessages.scrollHeight; }); }
-function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function el(tag, cls) { 
+    const e = document.createElement(tag); 
+    e.className = cls; 
+    return e; 
+}
+
+function scroll() { 
+    requestAnimationFrame(() => { 
+        chatMessages.scrollTop = chatMessages.scrollHeight; 
+    }); 
+}
+
+function esc(t) { 
+    const d = document.createElement('div'); 
+    d.textContent = t; 
+    return d.innerHTML; 
+}
+
 function fmt(t) {
     if (!t) return '';
     let h = esc(t);
